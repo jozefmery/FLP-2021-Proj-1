@@ -67,11 +67,11 @@ $(BINDIR):
 
 # compile in release mode
 $(BINDIR)/$(TARGET): $(SOURCES) | $(BINDIR) $(OBJDIR)/$(RELDIR)
-	$(CC) $(CFLAGS) $(RELCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(RELDIR)/
+	$(CC) $(CFLAGS) $(RELCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(RELDIR)/ -isrc
 
 # compile in debug mode
 $(BINDIR)/$(DEBUGTARGET): $(SOURCES) | $(BINDIR) $(OBJDIR)/$(DDIR)
-	$(CC) $(CFLAGS) $(DCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(DDIR)/
+	$(CC) $(CFLAGS) $(DCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(DDIR)/ -isrc
 
 release: $(BINDIR)/$(TARGET)
 debug: $(BINDIR)/$(DEBUGTARGET)
