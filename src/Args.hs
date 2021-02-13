@@ -6,13 +6,18 @@
     Description: Command-line argument parsing into program options.  
 -}
 
-module Src.Args where
+module Args where
 
 --- imports ---
 
 -- GetOpt code adopted from official docs
 -- https://hackage.haskell.org/package/base-4.14.1.0/docs/System-Console-GetOpt.html
 import System.Console.GetOpt
+    ( getOpt,
+      usageInfo,
+      ArgDescr(NoArg),
+      ArgOrder(Permute),
+      OptDescr(..) )
 import System.Environment( getArgs )
 
 --- imports ---
@@ -45,26 +50,27 @@ usage = "Usage: simplify-bkg {-h | -i | -1 | -2} [<input_file>]"
 -- GetOpt Options transformer definitions.
 optionsTransformer :: [OptDescr (Options -> Options)]
 optionsTransformer = 
-  [ Option ['h'] ["help"] (NoArg (\ opts -> opts { help = True })) "Print this help message."
-  , Option ['i'] [] (NoArg (\ opts -> opts { internal = True })) "Print the internal representation of the parsed input grammar."
-  , Option ['1'] [] (NoArg (\ opts -> opts { step1 = True })) "Print the grammar after the first step. "
-  , Option ['2'] [] (NoArg (\ opts -> opts { step2 = True })) "Print the grammar after the second step."
+  [ Option ['h'] ["help"] (NoArg (\ opts -> opts { help = True }))      "Print this help message."
+  , Option ['i'] []       (NoArg (\ opts -> opts { internal = True }))  "Print the internal representation of the parsed input grammar."
+  , Option ['1'] []       (NoArg (\ opts -> opts { step1 = True }))     "Print the grammar after the first step. "
+  , Option ['2'] []       (NoArg (\ opts -> opts { step2 = True }))     "Print the grammar after the second step."
   ]
 
--- Runs getOpt and returns transformed options and
--- a list of arguments.
-options' :: IO (Options, [String])
-options' = do
-  argv <- getArgs
-  case getOpt Permute optionsTransformer argv of
-    (o, n, []) -> return (foldl (flip id) defaultOptions o, n)
-    (_, _, errs) -> ioError (userError (concat errs ++ usageInfo usage optionsTransformer))
-
--- Fills in the input field of the Options structure if any.
--- If multiple are provided, the first is chosen.
+-- Runs getOpt and fills in the input field of the Options structure if any
+-- using the addInputPath function. If multiple are provided,
+-- the first is chosen.
 options :: IO Options
 options = do
-  (opts, args) <- options'
-  case args of 
-    [] -> return opts
-    first:_ -> return opts{ input = Just first }
+  argv <- getArgs
+  (opts, args) <- transformOptions $ getOpt Permute optionsTransformer argv
+  return $ addInputPath opts args
+
+-- Applies transforms and checks for errors.
+transformOptions :: ([Options -> Options], [String], [String]) -> IO (Options, [String])
+transformOptions (o, n, []) = do return (foldl (flip id) defaultOptions o, n)
+transformOptions (_, _, errs) = ioError (userError (concat errs ++ usageInfo usage optionsTransformer))
+
+-- Adds input path if any.
+addInputPath :: Options -> [String] -> Options
+addInputPath opts [] = opts
+addInputPath opts (first:_) = opts{ input = Just first }
