@@ -18,11 +18,12 @@ module Args
 -- GetOpt code adopted from official docs
 -- https://hackage.haskell.org/package/base-4.14.1.0/docs/System-Console-GetOpt.html
 import System.Console.GetOpt
-    ( getOpt,
-      usageInfo,
-      ArgDescr(NoArg),
-      ArgOrder(Permute),
-      OptDescr(..) )
+  ( getOpt
+  , usageInfo
+  , ArgDescr(NoArg)
+  , ArgOrder(Permute)
+  , OptDescr(..)
+  )
 import System.Environment( getArgs )
 
 --- imports ---
