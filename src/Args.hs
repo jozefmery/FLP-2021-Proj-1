@@ -6,7 +6,12 @@
     Description: Command-line argument parsing into program options.  
 -}
 
-module Args where
+module Args
+  ( Options(..)
+  , usage
+  , optionsTransformer
+  , options
+  ) where
 
 --- imports ---
 
