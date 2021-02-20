@@ -3,7 +3,7 @@
   Author:   Jozef Méry - xmeryj00@vutbr.cz
   Project:  FLP-2021-xmeryj00-simplify-bkg
   Date:     20.2.2021
-  Description: TODO
+  Description: Simple Maybe-like monad with an error message attached to "Nothing".
 -}
 
 module Result( Result(..) ) where
