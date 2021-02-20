@@ -24,7 +24,10 @@ import System.Console.GetOpt
   , ArgOrder(Permute)
   , OptDescr(..)
   )
+
 import System.Environment( getArgs )
+
+import Result( Result(..) )
 
 --- imports ---
 
@@ -65,18 +68,19 @@ optionsTransformer =
 -- Runs getOpt and fills in the input field of the Options structure if any
 -- using the addInputPath function. If multiple are provided,
 -- the first is chosen.
-options :: IO Options
+options :: IO (Result Options)
 options = do
+  -- get command line arguments
   argv <- getArgs
-  (opts, args) <- transformOptions $ getOpt Permute optionsTransformer argv
-  return $ addInputPath opts args
+  -- run get opt and apply transformations on default options, including adding path
+  return $ transformOptions ( getOpt Permute optionsTransformer argv ) >>= addInputPath
 
 -- Applies transforms and checks for errors.
-transformOptions :: ([Options -> Options], [String], [String]) -> IO (Options, [String])
-transformOptions (o, n, []) = do return (foldl (flip id) defaultOptions o, n)
-transformOptions (_, _, errs) = ioError (userError (concat errs ++ usageInfo usage optionsTransformer))
+transformOptions :: ([Options -> Options], [String], [String]) -> Result (Options, [String])
+transformOptions (o, n, []) = Ok (foldl (flip id) defaultOptions o, n)
+transformOptions (_, _, errs) = Err $ concat errs ++ fullUsage
 
 -- Adds input path if any.
-addInputPath :: Options -> [String] -> Options
-addInputPath opts [] = opts
-addInputPath opts (first:_) = opts{ input = Just first }
+addInputPath :: (Options, [String]) -> Result Options
+addInputPath (opts, []) = Ok opts
+addInputPath (opts, first:_) = Ok opts{ input = Just first }
