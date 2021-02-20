@@ -1,15 +1,15 @@
 {-
-    File:     Args.hs
-    Author:   Jozef Méry - xmeryj00@vutbr.cz
-    Project:  FLP-2021-xmeryj00-simplify-bkg
-    Date:     9.2.2021
-    Description: Command-line argument parsing into program options.  
+  File:     Args.hs
+  Author:   Jozef Méry - xmeryj00@vutbr.cz
+  Project:  FLP-2021-xmeryj00-simplify-bkg
+  Date:     9.2.2021
+  Description: Command-line argument parsing into program options.  
 -}
 
 module Args
   ( Options(..)
   , usage
-  , optionsTransformer
+  , fullUsage
   , options
   ) where
 
@@ -52,9 +52,12 @@ defaultOptions = Options
   , input     = Nothing 
   }
 
--- Program usage string.
+-- Program usage strings.
 usage :: String
 usage = "Usage: simplify-bkg {-h | -i | -1 | -2} [<input_file>]"
+
+fullUsage :: String
+fullUsage = usageInfo usage optionsTransformer
 
 -- GetOpt Options transformer definitions.
 optionsTransformer :: [OptDescr (Options -> Options)]
