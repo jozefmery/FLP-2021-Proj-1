@@ -35,3 +35,8 @@ instance Monad Result where
   Err e   >>= _     = Err e
   res >> f          = res >>= const f
   return            = Ok
+
+-- >>= style extractor except for the error message.
+(>>!) :: Result ok -> (String -> Result ok) -> Result ok
+Err e >>! f = f e
+Ok val >>! _ = Ok val
