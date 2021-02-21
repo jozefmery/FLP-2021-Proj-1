@@ -28,7 +28,6 @@ import System.Console.GetOpt
 import System.Environment( getArgs )
 
 import Result( Result(..) )
-
 --- imports ---
 
 -- Program options structure representing command-line
@@ -54,7 +53,7 @@ defaultOptions = Options
 
 -- Program usage strings.
 usage :: String
-usage = "Usage: simplify-bkg {-h | -i | -1 | -2} [<input_file>]"
+usage = "Usage: simplify-bkg [-h] {-i | -1 | -2} [<input_file>]"
 
 fullUsage :: String
 fullUsage = usageInfo usage optionsTransformer
