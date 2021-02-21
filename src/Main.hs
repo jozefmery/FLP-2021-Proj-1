@@ -28,11 +28,23 @@ import System.Exit
 import Result( Result(..) )
 
 import Simplify -- TODO
-
 --- imports ---
 
 printError :: String -> IO()
-printError err = putStrLn $ "Error: " ++ err
+printError e = putStrLn $ "Error: " ++ e
+
+printResult :: Result Grammar -> IO(Result Grammar)
+printResult e@(Err msg) = do
+  printError msg
+  return e 
+
+printResult ok@(Ok g) = do
+  putStr $ show g
+  return ok
+
+exit :: Result Grammar -> IO()
+exit (Ok _)  = exitSuccess
+exit (Err _) = exitFailure
 
 run :: Result Options -> IO()
 run (Err err) = do
@@ -43,28 +55,23 @@ run (Ok Options{ help = True }) = do
   putStrLn fullUsage
   exitSuccess
 
-run (Ok Options
-          { internal  = True
-          , step1     = False
-          , step2     = False
-          , input     
-          }) = do
-  loadGrammar input -- TODO
-  exitSuccess
+run (Ok Options { internal  = True
+                , step1     = False
+                , step2     = False
+                , input     
+                }) = loadGrammar input >>= printResult >>= exit
 
-run (Ok Options 
-          { internal  = False
-          , step1     = True
-          , step2     = False
-          }) = do
+run (Ok Options { internal  = False
+                , step1     = True
+                , step2     = False
+                }) = do
   print "step1" -- TODO
   exitSuccess
 
-run (Ok Options
-          { internal  = False
-          , step1     = False
-          , step2     = True
-          }) = do
+run (Ok Options { internal  = False
+                , step1     = False
+                , step2     = True
+                }) = do
   print "step2" -- TODO
   exitSuccess
 
