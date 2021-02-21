@@ -3,18 +3,19 @@
   Author:   Jozef Méry - xmeryj00@vutbr.cz
   Project:  FLP-2021-xmeryj00-simplify-bkg
   Date:     20.2.2021
-  Description: Simple Maybe-like monad with an error message attached to "Nothing".
+  Description: Simple Maybe-like monad with an error message instead of Nothing.
 -}
 
-module Result( Result(..) ) where
+module Result ( Result(..)
+              , (>>!) 
+              , (<:)
+              ) where
 
---- imports
-
+--- imports ---
 import Control.Monad( liftM, ap )
+--- imports ---
 
---- imports
-
--- Maybe-like Monad with an error message string instead of nothing.
+-- Maybe-like Monad with an error message string instead of Nothing.
 -- Used throughout the application for error handling in a Rust-lang
 -- inspired style.
 data Result ok = Ok ok | Err String
@@ -37,6 +38,15 @@ instance Monad Result where
   return            = Ok
 
 -- >>= style extractor except for the error message.
-(>>!) :: Result ok -> (String -> Result ok) -> Result ok
+(>>!) :: Result a -> (String -> Result a) -> Result a
 Err e >>! f = f e
-Ok val >>! _ = Ok val
+Ok a >>! _ = Ok a
+
+-- Operator for pushing a Result value into a Result list.
+(<:) :: Result a -> Result [a] -> Result [a]
+
+-- earlier error takes precedence
+Err e <: _ = Err e 
+_ <: Err e = Err e
+
+Ok a <: Ok as = Ok (a:as)
