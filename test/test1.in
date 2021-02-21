@@ -2,6 +2,6 @@ A,B,S
 a,b
 S
 A->AB
-B->
+B->b
 S->A
 S->a
