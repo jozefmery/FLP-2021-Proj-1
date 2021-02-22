@@ -27,12 +27,22 @@ import System.Exit
 
 import Result( Result(..) )
 
-import Simplify -- TODO
+import System.IO
+  ( hPutStrLn
+  , stderr
+  )
+
+import Simplify
+  ( loadGrammar
+  , Grammar
+  )
 --- imports ---
 
+-- Prints a string prefixed with universal "Error" to stderr.
 printError :: String -> IO()
-printError e = putStrLn $ "Error: " ++ e
+printError e = hPutStrLn stderr $ "simplify-bkg error: " ++ e
 
+-- Print either an error message or the resulting grammar based on the result.
 printResult :: Result Grammar -> IO(Result Grammar)
 printResult e@(Err msg) = do
   printError msg
@@ -42,6 +52,9 @@ printResult ok@(Ok g) = do
   putStr $ show g
   return ok
 
+-- Exits the application based on the result.
+-- When successful, 0 is returned,
+-- otherwise an implementation dependent non-zero value
 exit :: Result Grammar -> IO()
 exit (Ok _)  = exitSuccess
 exit (Err _) = exitFailure
@@ -81,6 +94,6 @@ run (Ok Options{}) = do
   putStrLn fullUsage
   exitFailure
 
+-- Extracts options from command-line arguments and runs the program
 main :: IO()
--- get options from command-line arguments and run the program
 main = options >>= run
