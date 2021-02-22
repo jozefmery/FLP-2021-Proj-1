@@ -9,6 +9,7 @@
 
 --- extensions ---
 {-# LANGUAGE NamedFieldPuns #-}
+{-# LANGUAGE TupleSections #-}
 --- extensions ---
 
 module Simplify 
@@ -31,11 +32,16 @@ import Result
   , (<:) 
   )
 
+import Data.Functor ( (<&>) )
+
 --- imports ---
 
 -- Tuple alias representing a context-free grammar rule N -> (N u T)*,
 -- where an empty string (Epsilon) is represented by the '#' character.
 type Rule = (Char, String)
+
+ruleToStr :: Rule -> String
+ruleToStr (l, r) = l:"->" ++ r
 
 -- Grammar data structure based on the formal grammar
 -- definition G = (N, T, S, P).
@@ -47,42 +53,35 @@ data Grammar = Grammar{ ns  :: Set Char
 
 -- Define Grammar conversion to string. Same format is used as the input.
 instance Show Grammar where
-  show Grammar{ ns, ts, s, rs } = 
-    addCommas ( toList ns ) ++ "\n" ++
-    addCommas ( toList ts ) ++ "\n" ++
-    [s]                     ++ "\n" ++
-    concatMap (\(n, nts) -> n:"->" ++ nts ++ "\n") (toList rs) 
+  show Grammar{ ns, ts, s, rs } = unlines $ [addCommas ( toList ns ), addCommas ( toList ts ), [s]] 
+                                            ++ map ruleToStr ( toList rs ) 
 
 -- Adds commas between each character in a string e.g.: "ABC" -> "A,B,C".
 -- Used for stringifying non-/terminals in a grammar.
 addCommas :: String -> String
 addCommas = intersperse ','
 
--- Filters a given character from a string.
-filterChar :: Char -> String -> String
-filterChar c s = [x | x <- s, x /= c]
-
 -- Filters commas from a string.
 -- Used for transforming input non-/terminals to internal representation.
 filterComma :: String -> String
-filterComma = filterChar ','
+filterComma = filter (/= ',')
 
 -- Checks if every character of a string is an element of another string.
 -- Returns original string on success, or a customizable error message otherwise.
 -- Used for checking input non-/terminals.
-checkSymbols :: String -> (Char -> String) -> String -> Result String
-checkSymbols _ _ "" = Ok ""
-checkSymbols sym err (c:cc) | c `elem` sym = checkSymbols sym err cc >> Ok (c:cc)
-                            | otherwise = Err $ err c
+checkSymbols :: (String, Char -> String) -> String -> Result String
+checkSymbols _ "" = Ok ""
+checkSymbols conf@(sym, err) (c:cc) | c `elem` sym = checkSymbols conf cc >> Ok (c:cc)
+                                    | otherwise = Err $ err c
 
 -- Invokes comma filtering on the input non-/terminals list (string),
 -- and a custom checker. On success, returns a set of symbols (chars).
 parseSymbols :: (String -> Result String) -> String -> Result (Set Char)
-parseSymbols checker sym = checker (filterComma sym) >>= \n -> Ok $ fromList n
+parseSymbols checker sym = checker ( filterComma sym ) <&> fromList 
 
 -- Simple helper for error message formatting.
 formatError :: String -> String
-formatError e = "Error in input grammar: " ++ e
+formatError = ("Error in input grammar: " ++)
 
 -- Custom error for non-terminal symbols supplied to checkSymbols.
 invalidNonTerminalError :: Char -> String 
@@ -92,7 +91,7 @@ invalidNonTerminalError c = formatError "invalid non-terminal: " ++ [c]
 -- and a custom error function for non-terminals. The last missing parameter
 -- is the list of non-terminals to check.
 checkNonTerminals :: String -> Result String
-checkNonTerminals = checkSymbols ['A'..'Z'] invalidNonTerminalError 
+checkNonTerminals = checkSymbols (['A'..'Z'], invalidNonTerminalError)
 
 -- Partially invoked parseSymbols with checkNonTerminals being the checker,
 -- and the missing parameter being the list of non-terminals to parse.
@@ -107,7 +106,7 @@ parseNonTerminals = parseSymbols checkNonTerminals
 -- semi-constructed Grammar with potential errors ahead. If successful, setRules returns
 -- the fully constructed Grammar.
 setNonTerminals :: (String, String, String, [String]) -> Result (Set Char, String, String, [String])
-setNonTerminals (ns, ts, s, rs) = parseNonTerminals ns >>= \parsed -> Ok (parsed, ts, s, rs)
+setNonTerminals (ns, ts, s, rs) = parseNonTerminals ns <&> (, ts, s, rs)
 
 -- Custom error for terminal symbols supplied to checkSymbols.
 invalidTerminalError :: Char -> String 
@@ -117,7 +116,7 @@ invalidTerminalError c = formatError "invalid terminal: " ++ [c]
 -- and a custom error function for terminals. The last missing parameter
 -- is the list of terminals to check.
 checkTerminals :: String -> Result String
-checkTerminals = checkSymbols ['a'..'z'] invalidTerminalError 
+checkTerminals = checkSymbols (['a'..'z'], invalidTerminalError) 
 
 -- Partially invoked parseSymbols with checkTerminals being the checker,
 -- and the missing parameter being the list of non-terminals to parse.
@@ -127,23 +126,31 @@ parseTerminals = parseSymbols checkTerminals
 -- Parses non-terminals in a raw Grammar-like tuple structure.
 -- See setNonTerminals for more details.
 setTerminals :: (Set Char, String, String, [String]) -> Result (Set Char, Set Char, String, [String])
-setTerminals (ns, ts, s, rs) = parseTerminals ts >>= \parsed -> Ok (ns, parsed, s, rs)
+setTerminals (ns, ts, s, rs) = parseTerminals ts <&> (ns, , s, rs)
+
+-- Checks if a grammar starting symbol is a single character,
+-- and if is inside the non-terminal set.
+checkStart :: Set Char -> String -> Result Char
+checkStart ns s@[c] 
+  | c `elem` ns = Ok c
+  | otherwise = Err $ formatError "starting symbol " ++ s ++ " not element of non-terminals"
+
+checkStart _ s = Err $ formatError "invalid starting symbol: " ++ s
 
 -- Parses the starting symbol in a raw Grammar-like tuple structure.
 -- The starting symbol needs to be in the set of non-terminals.
 -- See setNonTerminals for more details.
 setStart :: (Set Char, Set Char, String, [String]) -> Result (Set Char, Set Char, Char, [String])
-setStart (ns, ts, s, rs)  | length s == 1 && head s `elem` ns = Ok(ns, ts, head s, rs)
-                          | otherwise = Err $ formatError "invalid starting symbol: " ++ s
+setStart (ns, ts, s, rs) = checkStart ns s <&> (ns, ts, , rs)
 
 -- Returns a list of characters, which are not valid (not inside the valid set).
 -- Used for finding rules with invalid right sides.
 invalidRuleSymbols :: Set Char -> String -> String
-invalidRuleSymbols valid s = [c | c <- s, c `notElem` valid]
+invalidRuleSymbols valid = filter ( `notElem` valid )
 
 -- Checks the left side of a grammar rule.
 checkRuleLeft :: (Set Char, Set Char, String) -> Result (Set Char, Set Char, String)
-checkRuleLeft all@(ns, _, r@(left:_))
+checkRuleLeft all@(ns, _, r@(left:_)) 
   | left `notElem` ns = Err $ formatError "invalid left side: " ++ [left] ++ " in rule: " ++ r
   | otherwise         = Ok all
 
@@ -186,11 +193,9 @@ readInput Nothing = getContents
 
 -- Filters empty strings from a list.
 filterEmptyStrings :: [String] -> [String]
-filterEmptyStrings ss = [s | s <- ss, s /= ""]
+filterEmptyStrings = filter (/= "")
 
 -- Loads grammar from file or stdin.
 -- Empty lines are ignored.
 loadGrammar :: Maybe FilePath -> IO(Result Grammar)
-loadGrammar input = do
-  content <- readInput input
-  return $ parseGrammar $ filterEmptyStrings $ lines content
+loadGrammar input = readInput input <&> ( parseGrammar . filterEmptyStrings . lines )
