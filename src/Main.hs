@@ -35,6 +35,8 @@ import System.IO
 import Simplify
   ( loadGrammar
   , Grammar
+  , simplifyGrammar1
+  , simplifyGrammar2
   )
 --- imports ---
 
@@ -77,16 +79,14 @@ run (Ok Options { internal  = True
 run (Ok Options { internal  = False
                 , step1     = True
                 , step2     = False
-                }) = do
-  print "step1" -- TODO
-  exitSuccess
+                , input
+                }) = loadGrammar input >>= printResult . simplifyGrammar1 >>= exit
 
 run (Ok Options { internal  = False
                 , step1     = False
                 , step2     = True
-                }) = do
-  print "step2" -- TODO
-  exitSuccess
+                , input
+                }) = loadGrammar input >>= printResult . simplifyGrammar2 . simplifyGrammar1 >>= exit
 
 -- handle invalid flag combination (multiple flags or none)
 run (Ok Options{}) = do
