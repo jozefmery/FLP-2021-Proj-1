@@ -27,6 +27,8 @@ import System.Console.GetOpt
 
 import System.Environment( getArgs )
 
+import Data.Functor ( (<&>) )
+
 import Result( Result(..) )
 --- imports ---
 
@@ -75,7 +77,7 @@ options = do
   -- get command line arguments
   argv <- getArgs
   -- run get opt and apply transformations on default options, including adding path
-  return $ transformOptions ( getOpt Permute optionsTransformer argv ) >>= addInputPath
+  return $ transformOptions ( getOpt Permute optionsTransformer argv ) <&> addInputPath
 
 -- Applies transforms and checks for errors.
 transformOptions :: ([Options -> Options], [String], [String]) -> Result (Options, [String])
@@ -83,6 +85,6 @@ transformOptions (o, n, []) = Ok (foldl (flip id) defaultOptions o, n)
 transformOptions (_, _, errs) = Err $ concat errs ++ fullUsage
 
 -- Adds input path if any.
-addInputPath :: (Options, [String]) -> Result Options
-addInputPath (opts, []) = Ok opts
-addInputPath (opts, first:_) = Ok opts{ input = Just first }
+addInputPath :: (Options, [String]) -> Options
+addInputPath (opts, []) = opts
+addInputPath (opts, first:_) = opts{ input = Just first }
