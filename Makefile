@@ -9,9 +9,9 @@
 # $^ - all deps
 
 # archive properties
-ARCHIVE 	= flp-fun-xmeryj00
+ARCHIVE 		= flp-fun-xmeryj00
 ARCHIVEEXT  = zip
-ARCHIVER 	= zip
+ARCHIVER 		= zip
 
 # helper programs
 DIRMAKER 	= @mkdir -p
@@ -34,8 +34,8 @@ SRCEXT 		= hs
 # compiler options 
 CC          = ghc
 CFLAGS      = -Wall --make
-RELCFLAGS	= -O2
-DCFLAGS		= -g -O0
+RELCFLAGS		= -O2
+DCFLAGS			= -g -O0
 
 # link libraries
 LIBS		= $(addprefix -l, )
@@ -67,11 +67,11 @@ $(BINDIR):
 
 # compile in release mode
 $(BINDIR)/$(TARGET): $(SOURCES) | $(BINDIR) $(OBJDIR)/$(RELDIR)
-	$(CC) $(CFLAGS) $(RELCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(RELDIR)/ -isrc
+	$(CC) $(CFLAGS) $(RELCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(RELDIR)/ -i${SRCDIR}
 
 # compile in debug mode
 $(BINDIR)/$(DEBUGTARGET): $(SOURCES) | $(BINDIR) $(OBJDIR)/$(DDIR)
-	$(CC) $(CFLAGS) $(DCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(DDIR)/ -isrc
+	$(CC) $(CFLAGS) $(DCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(DDIR)/ -i${SRCDIR}
 
 release: $(BINDIR)/$(TARGET)
 debug: $(BINDIR)/$(DEBUGTARGET)
