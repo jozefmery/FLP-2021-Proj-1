@@ -34,6 +34,7 @@ import qualified Data.Set as Set
   , singleton
   , intersection
   , unions
+  , notMember
   )
 
 import Data.List ( intersperse )
@@ -44,7 +45,6 @@ import Result
   )
 
 import Data.Functor ( (<&>) )
-
 --- imports ---
 
 -- Tuple alias representing a context-free grammar rule N -> (N u T)*,
@@ -77,13 +77,19 @@ addCommas = intersperse ','
 filterComma :: String -> String
 filterComma = filter (/= ',')
 
--- Checks if every character of a string is an element of another string.
+-- Returns a list of characters, which are not valid (not inside the valid set).
+-- Used for finding rules with invalid right sides and invalid non-/terminals.
+invalidSymbols :: Set.Set Char -> String -> String
+invalidSymbols valid = filter ( `Set.notMember` valid )
+
+-- Checks if every character of a string is an element of a character set.
 -- Returns original string on success, or a customizable error message otherwise.
 -- Used for checking input non-/terminals.
-checkSymbols :: (String, Char -> String) -> String -> Result String
-checkSymbols _ "" = Ok ""
-checkSymbols conf@(sym, err) (c:cc) | c `elem` sym = checkSymbols conf cc >> Ok (c:cc)
-                                    | otherwise = Err $ err c
+checkSymbols :: Set.Set Char -> (String -> String) -> String -> Result String
+checkSymbols valid err s  | null invalid = Ok s
+                          | otherwise = Err $ err $ addCommas invalid
+                          where
+                            invalid = invalidSymbols valid s
 
 -- Invokes comma filtering on the input non-/terminals list (string),
 -- and a custom checker. On success, returns a set of symbols (chars).
@@ -95,14 +101,14 @@ formatError :: String -> String
 formatError = ( "Error in input grammar: " ++ )
 
 -- Custom error for non-terminal symbols supplied to checkSymbols.
-invalidNonTerminalError :: Char -> String 
-invalidNonTerminalError c = formatError "invalid non-terminal: " ++ [c]
+invalidNonTerminalError :: String -> String 
+invalidNonTerminalError = ( formatError "invalid non-terminals: " ++ )
 
 -- Partially invoked checkSymbols with capital letters as the valid set
 -- and a custom error function for non-terminals. The last missing parameter
 -- is the list of non-terminals to check.
 checkNonTerminals :: String -> Result String
-checkNonTerminals = checkSymbols (['A'..'Z'], invalidNonTerminalError)
+checkNonTerminals = checkSymbols ( Set.fromList ['A'..'Z'] ) invalidNonTerminalError
 
 -- Partially invoked parseSymbols with checkNonTerminals being the checker,
 -- and the missing parameter being the list of non-terminals to parse.
@@ -120,14 +126,14 @@ setNonTerminals :: (String, String, String, [String]) -> Result (Set.Set Char, S
 setNonTerminals (ns, ts, s, rs) = parseNonTerminals ns <&> (, ts, s, rs)
 
 -- Custom error for terminal symbols supplied to checkSymbols.
-invalidTerminalError :: Char -> String 
-invalidTerminalError c = formatError "invalid terminal: " ++ [c]
+invalidTerminalError :: String -> String 
+invalidTerminalError = ( formatError "invalid terminals: " ++ )
 
 -- Partially invoked checkSymbols with lower-case letters as the valid set
 -- and a custom error function for terminals. The last missing parameter
 -- is the list of terminals to check.
 checkTerminals :: String -> Result String
-checkTerminals = checkSymbols (['a'..'z'], invalidTerminalError) 
+checkTerminals = checkSymbols ( Set.fromList ['a'..'z'] ) invalidTerminalError
 
 -- Partially invoked parseSymbols with checkTerminals being the checker,
 -- and the missing parameter being the list of non-terminals to parse.
@@ -154,11 +160,6 @@ checkStart _ s = Err $ formatError "invalid starting symbol: " ++ s
 setStart :: (Set.Set Char, Set.Set Char, String, [String]) -> Result (Set.Set Char, Set.Set Char, Char, [String])
 setStart (ns, ts, s, rs) = checkStart ns s <&> (ns, ts, , rs)
 
--- Returns a list of characters, which are not valid (not inside the valid set).
--- Used for finding rules with invalid right sides.
-invalidRuleSymbols :: Set.Set Char -> String -> String
-invalidRuleSymbols valid = filter ( `notElem` valid )
-
 -- Checks the left side of a grammar rule.
 checkRuleLeft :: (Set.Set Char, Set.Set Char, String) -> Result (Set.Set Char, Set.Set Char, String)
 checkRuleLeft a@(ns, _, r@(left:_)) 
@@ -168,7 +169,7 @@ checkRuleLeft a@(ns, _, r@(left:_))
 checkRuleLeft _ = error "Found an invalid rule. This is likely a parsing error." 
 
 -- Checks the right side of a grammar rule.
--- Assumes valid rule. Validity checked by parseRule.
+-- Assumes valid rule format. Validity checked by parseRule.
 checkRuleRight :: (Set.Set Char, Set.Set Char, String) -> Result (Set.Set Char, Set.Set Char, String)
 checkRuleRight a@(ns, ts, r@(_:_:_:right)) 
   | null right          = Err $ formatError "empty right side in rule: " ++ r
@@ -176,7 +177,7 @@ checkRuleRight a@(ns, ts, r@(_:_:_:right))
   | not $ null invalid  = Err $ formatError "invalid symbols: " ++ show invalid ++ " in rule: " ++ r
   | otherwise           = Ok a
   where -- avoid horrendous duplication
-    invalid = invalidRuleSymbols (ns `Set.union` ts) right
+    invalid = invalidSymbols ( ns `Set.union` ts ) right
 
 checkRuleRight _ = error "Invalid call"
 
@@ -192,7 +193,7 @@ parseRules (ns, ts, s, r:rs) = parseRule (ns, ts, r) <: parseRules (ns, ts, s, r
 
 -- Invokes rule parser and constructs complete Grammar if successful.
 setRules :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result Grammar
-setRules g@(ns, ts, s, _) = parseRules g >>= \parsed -> Ok $ Grammar ns ts s $ Set.fromList parsed
+setRules g@(ns, ts, s, _) = parseRules g <&> \parsed -> Grammar ns ts s $ Set.fromList parsed
 
 -- Invokes each stage of the grammar parsing pipeline.
 parseGrammar :: [String] -> Result Grammar
@@ -216,12 +217,14 @@ filterEmptyStrings = filter (/= "")
 loadGrammar :: Maybe FilePath -> IO(Result Grammar)
 loadGrammar input = readInput input <&> ( parseGrammar . filterEmptyStrings . lines )
 
--- TODO
+-- Checks if the right side of a rule is a member in
+-- an iteration of a char set.
 rightSideInIter :: Set.Set Char -> Rule -> Bool
 rightSideInIter _ (_, "#") = True -- special epsilon case, valid regardless of alphabet
-rightSideInIter super (_, r) = Set.fromList r `Set.isSubsetOf` super
+rightSideInIter set (_, r) = Set.fromList r `Set.isSubsetOf` set
 
--- TODO
+-- Returns a set of non-terminals which generate finite strings.
+-- Based on algorithm 4.1 from TIN.
 generatingNonTerminals' :: Set.Set Char -> Grammar -> Set.Set Char 
 generatingNonTerminals' prev g@Grammar{ ts, rs }  
   | prev == current = current
@@ -229,36 +232,51 @@ generatingNonTerminals' prev g@Grammar{ ts, rs }
   where
     current = Set.map fst $ Set.filter (rightSideInIter $ prev `Set.union` ts) rs
 
--- TODO
+-- Wrapper around generatingNonTerminals', which supplies
+-- the initial empty set.
 generatingNonTerminals :: Grammar -> Grammar
 generatingNonTerminals g@Grammar{ s } = g{ ns = Set.insert s $ generatingNonTerminals' Set.empty g }
 
--- TODO
+-- Checks if a given rule is valid within a given grammar.
 isRuleValid :: Grammar -> Rule -> Bool
 isRuleValid Grammar{ ns, ts } rule@(l, _) = l `Set.member` ns && rightSideInIter ( ns `Set.union` ts ) rule
 
--- TODO
+-- Filters invalid rules from a grammar.
 filterGrammarRules :: Grammar -> Grammar
 filterGrammarRules g@Grammar{ rs } = g{ rs = Set.filter ( isRuleValid g ) rs }
 
--- TODO
+-- Invokes the appropriate functions to complete
+-- the first step of the grammar simplification process.
+-- Uses grammar wrapped in results to improve integration
+-- in main.
 simplifyGrammar1 :: Result Grammar -> Result Grammar
 simplifyGrammar1 g = g <&> filterGrammarRules . generatingNonTerminals 
 
--- TODO
+-- Returns a set of non-/terminals, which are accessible through 
+-- an arbitrary length sequence of rule applications starting from the
+-- starting symbol. Based on algorithm 4.2 from TIN.
 availableSymbols' :: Set.Set Char -> Grammar -> Set.Set Char
 availableSymbols' prev g@Grammar{ rs } 
   | prev == current = current
-  | otherwise       = prev `Set.union` availableSymbols' current g
+  | otherwise       = availableSymbols' current g
   where
-    current = Set.unions $ Set.map ( Set.fromList . snd ) $ Set.filter (( `Set.member` prev ) . fst ) rs
+    current = prev `Set.union` Set.unions ( Set.map ( Set.fromList . snd ) $ Set.filter (( `Set.member` prev ) . fst ) rs )
 
--- TODO
+-- Invokes availableSymbols' and filter unavailable symbols from grammar.
 availableSymbols :: Grammar -> Grammar
 availableSymbols g@Grammar{ ns, ts, s } = g{ ns = ns `Set.intersection` v, ts = ts `Set.intersection` v }
   where
     v = availableSymbols' ( Set.singleton s ) g
 
--- TODO
+-- Invokes the appropriate functions to complete
+-- the second step of the grammar simplification process.
+-- Uses grammar wrapped in results to improve integration
+-- in main.
 simplifyGrammar2 :: Result Grammar -> Result Grammar
+
+-- handle special case
+-- required by assignment
+-- this is redundant, second part handles this case correctly
+simplifyGrammar2 (Ok g@Grammar{ s, rs }) | rs == Set.empty = Ok g { ns = Set.singleton s, ts = Set.empty }
+
 simplifyGrammar2 g = g <&> filterGrammarRules . availableSymbols
