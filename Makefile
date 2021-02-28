@@ -17,7 +17,6 @@ ARCHIVER 		= zip
 DIRMAKER 	= @mkdir -p
 
 # directory definitions
-BINDIR 		= bin
 SRCDIR		= src
 OBJDIR 		= build
 
@@ -61,34 +60,20 @@ $(OBJDIR)/$(DDIR): $(OBJDIR)
 $(OBJDIR)/$(RELDIR): $(OBJDIR)
 	$(DIRMAKER) $(OBJDIR)/$(RELDIR)
 
-# binary directory target
-$(BINDIR):
-	$(DIRMAKER) $(BINDIR)
-
 # compile in release mode
-$(BINDIR)/$(TARGET): $(SOURCES) | $(BINDIR) $(OBJDIR)/$(RELDIR)
+$(TARGET): $(SOURCES) | $(OBJDIR)/$(RELDIR)
 	$(CC) $(CFLAGS) $(RELCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(RELDIR)/ -i${SRCDIR}
 
 # compile in debug mode
-$(BINDIR)/$(DEBUGTARGET): $(SOURCES) | $(BINDIR) $(OBJDIR)/$(DDIR)
+$(DEBUGTARGET): $(SOURCES) | $(OBJDIR)/$(DDIR)
 	$(CC) $(CFLAGS) $(DCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(DDIR)/ -i${SRCDIR}
 
-release: $(BINDIR)/$(TARGET)
-debug: $(BINDIR)/$(DEBUGTARGET)
-
-# run
-run: release
-	@./$(BINDIR)/$(TARGET) $(ARGS)
-
-# run with clear
-crun: release
-	@clear
-	@./$(BINDIR)/$(TARGET) $(ARGS)
+release: $(TARGET)
+debug: $(DEBUGTARGET)
 
 # clean directory
 clean:
 	-rm -rf $(OBJDIR)/
-	-rm -rf $(BINDIR)/
 	-rm -f  $(ARCHIVE).$(ARCHIVEEXT)
 
 # create final archive
