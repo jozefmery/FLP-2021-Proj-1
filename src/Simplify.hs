@@ -37,7 +37,10 @@ import qualified Data.Set as Set
   , notMember
   )
 
-import Data.List ( intersperse )
+import Data.List
+  ( intersperse
+  , nub
+  )
 
 import Result 
   ( Result(..)
@@ -83,13 +86,15 @@ invalidSymbols :: Set.Set Char -> String -> String
 invalidSymbols valid = filter ( `Set.notMember` valid )
 
 -- Checks if every character of a string is an element of a character set.
--- Returns original string on success, or a customizable error message otherwise.
+-- Returns original string on success.
 -- Used for checking input non-/terminals.
-checkSymbols :: Set.Set Char -> (String -> String) -> String -> Result String
-checkSymbols valid err s  | null invalid = Ok s
-                          | otherwise = Err $ err $ addCommas invalid
-                          where
-                            invalid = invalidSymbols valid s
+checkSymbols :: Set.Set Char -> String -> Result String
+checkSymbols valid s  | not $ null invalid  = Err $ formatError "invalid symbols: " ++ addCommas invalid
+                      | duplicates          = Err $ formatError "duplicate symbols: " ++ addCommas s 
+                      | otherwise           = Ok s
+                        where
+                          invalid   = invalidSymbols valid s
+                          duplicates = nub s /= s
 
 -- Invokes comma filtering on the input non-/terminals list (string),
 -- and a custom checker. On success, returns a set of symbols (chars).
@@ -100,15 +105,11 @@ parseSymbols checker sym = checker ( filterComma sym ) <&> Set.fromList
 formatError :: String -> String
 formatError = ( "Error in input grammar: " ++ )
 
--- Custom error for non-terminal symbols supplied to checkSymbols.
-invalidNonTerminalError :: String -> String 
-invalidNonTerminalError = ( formatError "invalid non-terminals: " ++ )
-
 -- Partially invoked checkSymbols with capital letters as the valid set
 -- and a custom error function for non-terminals. The last missing parameter
 -- is the list of non-terminals to check.
 checkNonTerminals :: String -> Result String
-checkNonTerminals = checkSymbols ( Set.fromList ['A'..'Z'] ) invalidNonTerminalError
+checkNonTerminals = checkSymbols ( Set.fromList ['A'..'Z'] )
 
 -- Partially invoked parseSymbols with checkNonTerminals being the checker,
 -- and the missing parameter being the list of non-terminals to parse.
@@ -125,15 +126,11 @@ parseNonTerminals = parseSymbols checkNonTerminals
 setNonTerminals :: (String, String, String, [String]) -> Result (Set.Set Char, String, String, [String])
 setNonTerminals (ns, ts, s, rs) = parseNonTerminals ns <&> (, ts, s, rs)
 
--- Custom error for terminal symbols supplied to checkSymbols.
-invalidTerminalError :: String -> String 
-invalidTerminalError = ( formatError "invalid terminals: " ++ )
-
 -- Partially invoked checkSymbols with lower-case letters as the valid set
 -- and a custom error function for terminals. The last missing parameter
 -- is the list of terminals to check.
 checkTerminals :: String -> Result String
-checkTerminals = checkSymbols ( Set.fromList ['a'..'z'] ) invalidTerminalError
+checkTerminals = checkSymbols ( Set.fromList ['a'..'z'] )
 
 -- Partially invoked parseSymbols with checkTerminals being the checker,
 -- and the missing parameter being the list of non-terminals to parse.
@@ -197,9 +194,9 @@ setRules g@(ns, ts, s, _) = parseRules g <&> \parsed -> Grammar ns ts s $ Set.fr
 
 -- Invokes each stage of the grammar parsing pipeline.
 parseGrammar :: [String] -> Result Grammar
-parseGrammar []           = Err "Empty input"
-parseGrammar [_]          = Err "Grammar missing alphabet"
-parseGrammar [_, _]       = Err "Grammar missing initial symbol"
+parseGrammar []           = Err $ formatError "Empty input"
+parseGrammar [_]          = Err $ formatError "Grammar missing alphabet"
+parseGrammar [_, _]       = Err $ formatError "Grammar missing initial symbol"
 parseGrammar (ns:ts:s:rs) = setNonTerminals (ns, ts, s, rs) >>= setTerminals >>= setStart >>= setRules
 
 -- Reads a whole file if given some input,
@@ -262,7 +259,7 @@ availableSymbols' prev g@Grammar{ rs }
   where
     current = prev `Set.union` Set.unions ( Set.map ( Set.fromList . snd ) $ Set.filter (( `Set.member` prev ) . fst ) rs )
 
--- Invokes availableSymbols' and filter unavailable symbols from grammar.
+-- Invokes availableSymbols' and filters unavailable symbols from grammar.
 availableSymbols :: Grammar -> Grammar
 availableSymbols g@Grammar{ ns, ts, s } = g{ ns = ns `Set.intersection` v, ts = ts `Set.intersection` v }
   where
@@ -271,7 +268,8 @@ availableSymbols g@Grammar{ ns, ts, s } = g{ ns = ns `Set.intersection` v, ts = 
 -- Invokes the appropriate functions to complete
 -- the second step of the grammar simplification process.
 -- Uses grammar wrapped in results to improve integration
--- in main.
+-- in main. Assumes that simplifyGrammar1 was already called 
+-- on the input grammar.
 simplifyGrammar2 :: Result Grammar -> Result Grammar
 
 -- handle special case
