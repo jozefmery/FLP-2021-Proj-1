@@ -1,0 +1,10 @@
+A,B,S
+a,b
+S
+A->a
+A->aAb
+A->bAa
+B->AB
+B->aaB
+B->bbA
+S->AB
