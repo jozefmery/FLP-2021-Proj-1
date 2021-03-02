@@ -9,16 +9,16 @@
 # $^ - all deps
 
 # archive properties
-ARCHIVE 		= flp-fun-xmeryj00
-ARCHIVEEXT  = zip
-ARCHIVER 		= zip
+ARCHIVE    = flp-fun-xmeryj00
+ARCHIVEEXT = zip
+ARCHIVER 	 = zip -r
 
 # helper programs
-DIRMAKER 	= @mkdir -p
+DIRMAKER = @mkdir -p
 
 # directory definitions
-SRCDIR		= src
-OBJDIR 		= build
+SRCDIR = src
+OBJDIR = build
 
 # target name
 TARGET      = simplify-bkg
@@ -28,27 +28,27 @@ DEBUGTARGET = dsimplify-bkg
 ARCHIVELIST = $(SRCDIR)/ Makefile doc/
 
 # file extensions
-SRCEXT 		= hs
+SRCEXT = hs
 
 # compiler options 
-CC          = ghc
-CFLAGS      = -Wall --make
-RELCFLAGS		= -O2
-DCFLAGS			= -g -O0
+CC        = ghc
+CFLAGS    = -Wall --make
+RELCFLAGS = -O2
+DCFLAGS		= -g -O0
 
 # link libraries
-LIBS		= $(addprefix -l, )
-LIBDIRS		= $(addprefix -L, )
+LIBS    = $(addprefix -l, )
+LIBDIRS = $(addprefix -L, )
 
 default: release
 .PHONY: default clean run archive crun debug release
 
 # object directory structure
-RELDIR	= Release
-DDIR	= Debug
+RELDIR = Release
+DDIR	 = Debug
 
 # fetch sources
-SOURCES  = $(wildcard $(SRCDIR)/*.$(SRCEXT))
+SOURCES = $(wildcard $(SRCDIR)/*.$(SRCEXT))
 
 # object directory structure targets
 $(OBJDIR):
@@ -69,10 +69,12 @@ $(DEBUGTARGET): $(SOURCES) | $(OBJDIR)/$(DDIR)
 	$(CC) $(CFLAGS) $(DCFLAGS) $(LIBS) $(LIBDIRS) src/Main.hs -o $@ -outputdir $(OBJDIR)/$(DDIR)/ -i${SRCDIR}
 
 release: $(TARGET)
-debug: $(DEBUGTARGET)
+debug:   $(DEBUGTARGET)
 
 # clean directory
 clean:
+	-rm -f  $(TARGET)
+	-rm -f  $(DEBUGTARGET)
 	-rm -rf $(OBJDIR)/
 	-rm -f  $(ARCHIVE).$(ARCHIVEEXT)
 
