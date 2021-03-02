@@ -1,5 +1,8 @@
 
+# do not version tests
+tests/
+
 # generated files
-bin/
-build/
-test/
+*.zip
+simplify-bkg
+dsimplify-bkg
