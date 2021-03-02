@@ -64,9 +64,9 @@ fullUsage = usageInfo usage optionsTransformer
 optionsTransformer :: [OptDescr (Options -> Options)]
 optionsTransformer = 
   [ Option ['h'] ["help"] (NoArg (\ opts -> opts { help = True }))      "Print this help message."
-  , Option ['i'] []       (NoArg (\ opts -> opts { internal = True }))  "Print the internal representation of the parsed input grammar."
-  , Option ['1'] []       (NoArg (\ opts -> opts { step1 = True }))     "Print the grammar after the first step. "
-  , Option ['2'] []       (NoArg (\ opts -> opts { step2 = True }))     "Print the grammar after the second (final) step."
+  , Option ['i'] []       (NoArg (\ opts -> opts { internal = True }))  "Print the input grammar from internal representation."
+  , Option ['1'] []       (NoArg (\ opts -> opts { step1 = True }))     "Print the grammar after the first simplification step."
+  , Option ['2'] []       (NoArg (\ opts -> opts { step2 = True }))     "Print the grammar after the second simplification (final) step."
   ]
 
 -- Runs getOpt and fills in the input field of the Options structure if any
