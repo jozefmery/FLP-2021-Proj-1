@@ -1,10 +1,10 @@
 A,B,C,S
 a,b
 S
-S->AB
-S->CA
-B->BC
-B->AB
 A->a
+B->AB
+B->BC
 C->AB
 C->b
+S->AB
+S->CA

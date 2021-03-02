@@ -1,11 +1,11 @@
 A,X,Y,Z
 x,y,z
 A
-A->xyz
 A->Xyzz
+A->xyz
 X->Xz
 X->xYz
-Y->yYy
 Y->Xz
+Y->yYy
 Z->Zy
 Z->z
