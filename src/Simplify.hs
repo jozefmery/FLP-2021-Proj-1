@@ -40,6 +40,8 @@ import qualified Data.Set as Set
 import Data.List
   ( intersperse
   , nub
+  , intercalate
+  , ( \\ )
   )
 
 import Result 
@@ -54,6 +56,7 @@ import Data.Functor ( (<&>) )
 -- where an empty string (Epsilon) is represented by the '#' character.
 type Rule = (Char, String)
 
+-- Converts a rule back into a string.
 ruleToStr :: Rule -> String
 ruleToStr (l, r) = l:"->" ++ r
 
@@ -75,31 +78,63 @@ instance Show Grammar where
 addCommas :: String -> String
 addCommas = intersperse ','
 
--- Filters commas from a string.
--- Used for transforming input non-/terminals to internal representation.
-filterComma :: String -> String
-filterComma = filter (/= ',')
+-- Splits a string based on a character.
+-- Adopted from: https://stackoverflow.com/a/7569301/5150211
+splitBy :: Char -> String -> [String]
+splitBy delimiter = foldr f [[]] 
+  where f c s@(x:xs)  | c == delimiter = []:s
+                      | otherwise = (c:x):xs
+        f _ [] = error "Invalid splitBy call"
+
+-- Splits a string based on commas.
+splitByComma :: String -> [String]
+splitByComma = splitBy ','
 
 -- Returns a list of characters, which are not valid (not inside the valid set).
 -- Used for finding rules with invalid right sides and invalid non-/terminals.
 invalidSymbols :: Set.Set Char -> String -> String
 invalidSymbols valid = filter ( `Set.notMember` valid )
 
--- Checks if every character of a string is an element of a character set.
--- Returns original string on success.
--- Used for checking input non-/terminals.
-checkSymbols :: Set.Set Char -> String -> Result String
-checkSymbols valid s  | not $ null invalid  = Err $ formatError "invalid symbols: " ++ addCommas invalid
-                      | duplicates          = Err $ formatError "duplicate symbols: " ++ addCommas s 
-                      | otherwise           = Ok s
-                        where
-                          invalid   = invalidSymbols valid s
-                          duplicates = nub s /= s
+-- Finds non-unique items in an array.
+-- Even if an item is repeated more than once,
+-- the resulting array contains the item only once.
+repeated :: Eq a => [a] -> [a]
+repeated arr = nub $ arr \\ nub arr
 
--- Invokes comma filtering on the input non-/terminals list (string),
+-- Checks if every string has exactly one character
+-- and if yes, converts a string list to a string.
+checkSymbolsLength :: [String] -> Result String
+checkSymbolsLength ss 
+  | not $ null invalid  = Err $ formatError "symbols with invalid name: " ++ intercalate "," invalid
+  | otherwise           = Ok $ map head ss
+  where
+    invalid = filter (\s -> length s /= 1) ss
+
+-- Checks if each symbol is unique.
+checkSymbolDuplicates :: String -> Result String
+checkSymbolDuplicates s
+  | not $ null duplicates = Err $ formatError "duplicate symbols: " ++ addCommas duplicates
+  | otherwise             = Ok s
+  where
+    duplicates = repeated s
+
+-- Checks if every symbol in a string belongs to a given set.
+checkInvalidSymbols :: Set.Set Char -> String -> Result String
+checkInvalidSymbols valid s
+  | not $ null invalid  = Err $ formatError "invalid symbols: " ++ addCommas invalid
+  | otherwise           = Ok s
+  where
+    invalid = invalidSymbols valid s
+
+-- Checks non-/terminals. Checks symbol format and value.
+-- Duplicates are not allowed and cause an error.
+checkSymbols :: Set.Set Char -> [String] -> Result String
+checkSymbols valid s = checkSymbolsLength s >>= checkSymbolDuplicates >>= checkInvalidSymbols valid
+
+-- Splits the symbols using the ',' delimiter non-/terminals list (string),
 -- and a custom checker. On success, returns a set of symbols (chars).
-parseSymbols :: (String -> Result String) -> String -> Result (Set.Set Char)
-parseSymbols checker sym = checker ( filterComma sym ) <&> Set.fromList 
+parseSymbols :: ([String] -> Result String) -> String -> Result (Set.Set Char)
+parseSymbols checker sym = checker ( splitByComma sym ) <&> Set.fromList 
 
 -- Simple helper for error message formatting.
 formatError :: String -> String
@@ -108,7 +143,7 @@ formatError = ( "Error in input grammar: " ++ )
 -- Partially invoked checkSymbols with capital letters as the valid set
 -- and a custom error function for non-terminals. The last missing parameter
 -- is the list of non-terminals to check.
-checkNonTerminals :: String -> Result String
+checkNonTerminals :: [String] -> Result String
 checkNonTerminals = checkSymbols ( Set.fromList ['A'..'Z'] )
 
 -- Partially invoked parseSymbols with checkNonTerminals being the checker,
@@ -126,10 +161,9 @@ parseNonTerminals = parseSymbols checkNonTerminals
 setNonTerminals :: (String, String, String, [String]) -> Result (Set.Set Char, String, String, [String])
 setNonTerminals (ns, ts, s, rs) = parseNonTerminals ns <&> (, ts, s, rs)
 
--- Partially invoked checkSymbols with lower-case letters as the valid set
--- and a custom error function for terminals. The last missing parameter
--- is the list of terminals to check.
-checkTerminals :: String -> Result String
+-- Partially invoked checkSymbols with lower-case letters as the valid set.
+-- The last missing parameter is the list of terminals to check.
+checkTerminals :: [String] -> Result String
 checkTerminals = checkSymbols ( Set.fromList ['a'..'z'] )
 
 -- Partially invoked parseSymbols with checkTerminals being the checker,
@@ -173,10 +207,10 @@ checkRuleRight a@(ns, ts, r@(_:_:_:right))
   | right == "#"        = Ok a -- special case, empty string
   | not $ null invalid  = Err $ formatError "invalid symbols: " ++ show invalid ++ " in rule: " ++ r
   | otherwise           = Ok a
-  where -- avoid horrendous duplication
+  where
     invalid = invalidSymbols ( ns `Set.union` ts ) right
 
-checkRuleRight _ = error "Invalid call"
+checkRuleRight _ = error "Invalid checkRuleRight call"
 
 -- Parses a single rule in a raw Grammar-like tuple structure (no initial symbol).
 parseRule :: (Set.Set Char, Set.Set Char, String) -> Result Rule
@@ -184,9 +218,17 @@ parseRule a@(_, _, left:'-':'>':right) = checkRuleLeft a >>= checkRuleRight >> O
 parseRule (_, _, r) = Err $ formatError "invalid rule: " ++ r 
 
 -- Parses all rules in a raw Grammar-like tuple structure (no initial symbol).
+parseRules' :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result [Rule]
+parseRules' (_, _, _, []) = Ok []
+parseRules' (ns, ts, s, r:rs) = parseRule (ns, ts, r) <: parseRules' (ns, ts, s, rs)
+
+-- Checks duplicate rules and invokes parseRules'.
 parseRules :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result [Rule]
-parseRules (_, _, _, []) = Ok []
-parseRules (ns, ts, s, r:rs) = parseRule (ns, ts, r) <: parseRules (ns, ts, s, rs)
+parseRules g@(_, _, _, rs)
+  | not $ null duplicates = Err $ formatError "duplicate rules: " ++ intercalate "," duplicates
+  | otherwise             = parseRules' g 
+  where
+    duplicates = repeated rs
 
 -- Invokes rule parser and constructs complete Grammar if successful.
 setRules :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result Grammar
