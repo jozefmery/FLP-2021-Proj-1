@@ -61,6 +61,7 @@ exit :: Result Grammar -> IO()
 exit (Ok _)  = exitSuccess
 exit (Err _) = exitFailure
 
+-- Runs simplifier based on supplied options.
 run :: Result Options -> IO()
 run (Err err) = do
   printError err
