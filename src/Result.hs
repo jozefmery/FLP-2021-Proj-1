@@ -12,7 +12,16 @@ module Result ( Result(..)
               ) where
 
 --- imports ---
-import Control.Monad( liftM, ap )
+import Control.Monad
+  ( liftM
+  , ap 
+  )
+
+import Control.Applicative
+  ( Applicative
+  , pure
+  , (<*>)
+  )
 --- imports ---
 
 -- Maybe-like Monad with an error message string instead of Nothing.

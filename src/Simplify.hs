@@ -49,7 +49,7 @@ import Result
   , (<:) 
   )
 
-import Data.Functor ( (<&>) )
+import Polyfill ( (<&>) )
 --- imports ---
 
 -- Tuple alias representing a context-free grammar rule N -> (N u T)*,
@@ -194,7 +194,7 @@ setStart (ns, ts, s, rs) = checkStart ns s <&> (ns, ts, , rs)
 -- Checks the left side of a grammar rule.
 checkRuleLeft :: (Set.Set Char, Set.Set Char, String) -> Result (Set.Set Char, Set.Set Char, String)
 checkRuleLeft a@(ns, _, r@(left:_)) 
-  | left `notElem` ns = Err $ formatError "invalid left side: " ++ [left] ++ " in rule: " ++ r
+  | left `Set.notMember` ns = Err $ formatError "invalid left side: " ++ [left] ++ " in rule: " ++ r
   | otherwise         = Ok a
 
 checkRuleLeft _ = error "Found an invalid rule. This is likely a parsing error." 
@@ -289,7 +289,7 @@ filterGrammarRules g@Grammar{ rs } = g{ rs = Set.filter ( isRuleValid g ) rs }
 -- Uses grammar wrapped in results to improve integration
 -- in main.
 simplifyGrammar1 :: Result Grammar -> Result Grammar
-simplifyGrammar1 g = g <&> filterGrammarRules . generatingNonTerminals 
+simplifyGrammar1 g = g <&> ( filterGrammarRules . generatingNonTerminals )
 
 -- Returns a set of non-/terminals, which are accessible through 
 -- an arbitrary length sequence of rule applications starting from the
@@ -299,7 +299,8 @@ availableSymbols' prev g@Grammar{ rs }
   | prev == current = current
   | otherwise       = availableSymbols' current g
   where
-    current = prev `Set.union` Set.unions ( Set.map ( Set.fromList . snd ) $ Set.filter (( `Set.member` prev ) . fst ) rs )
+    current = prev `Set.union` Set.unions ( Set.toList ( 
+      Set.map ( Set.fromList . snd ) $ Set.filter (( `Set.member` prev ) . fst ) rs ) )
 
 -- Invokes availableSymbols' and filters unavailable symbols from grammar.
 availableSymbols :: Grammar -> Grammar
@@ -319,4 +320,4 @@ simplifyGrammar2 :: Result Grammar -> Result Grammar
 -- this is redundant, second part handles this case correctly
 simplifyGrammar2 (Ok g@Grammar{ s, rs }) | rs == Set.empty = Ok g { ns = Set.singleton s, ts = Set.empty }
 
-simplifyGrammar2 g = g <&> filterGrammarRules . availableSymbols
+simplifyGrammar2 g = g <&> ( filterGrammarRules . availableSymbols )

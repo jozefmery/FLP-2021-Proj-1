@@ -27,7 +27,7 @@ import System.Console.GetOpt
 
 import System.Environment( getArgs )
 
-import Data.Functor ( (<&>) )
+import Polyfill ( (<&>) )
 
 import Result( Result(..) )
 --- imports ---
