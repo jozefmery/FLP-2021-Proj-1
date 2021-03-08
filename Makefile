@@ -25,7 +25,7 @@ TARGET      = simplify-bkg
 DEBUGTARGET = dsimplify-bkg
 
 # archive content definition
-ARCHIVELIST = $(SRCDIR)/ Makefile doc/README.md
+ARCHIVELIST = $(SRCDIR)/ Makefile doc/README.md doc/test-description.txt test/ runTests.sh 
 
 # file extensions
 SRCEXT = hs
