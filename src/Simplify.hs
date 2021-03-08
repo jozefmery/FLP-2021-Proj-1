@@ -81,8 +81,9 @@ addCommas = intersperse ','
 -- Splits a string based on a character.
 -- Adopted from: https://stackoverflow.com/a/7569301/5150211
 splitBy :: Char -> String -> [String]
-splitBy delimiter = foldr f [[]] 
-  where f c s@(x:xs)  | c == delimiter = []:s
+splitBy _ "" = []
+splitBy delimiter s = foldr f [[]] s
+  where f c a@(x:xs)  | c == delimiter = []:a
                       | otherwise = (c:x):xs
         f _ [] = error "Invalid splitBy call"
 
@@ -222,13 +223,18 @@ parseRules' :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result [Rule]
 parseRules' (_, _, _, []) = Ok []
 parseRules' (ns, ts, s, r:rs) = parseRule (ns, ts, r) <: parseRules' (ns, ts, s, rs)
 
+-- Filters empty strings from a list.
+filterEmptyStrings :: [String] -> [String]
+filterEmptyStrings = filter (/= "")
+
 -- Checks duplicate rules and invokes parseRules'.
 parseRules :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result [Rule]
-parseRules g@(_, _, _, rs)
+parseRules (ns, ts, s, rs)
   | not $ null duplicates = Err $ formatError "duplicate rules: " ++ intercalate "," duplicates
-  | otherwise             = parseRules' g 
+  | otherwise             = parseRules' (ns, ts, s, filtered) 
   where
-    duplicates = repeated rs
+    filtered    = filterEmptyStrings rs
+    duplicates  = repeated filtered
 
 -- Invokes rule parser and constructs complete Grammar if successful.
 setRules :: (Set.Set Char, Set.Set Char, Char, [String]) -> Result Grammar
@@ -247,14 +253,10 @@ readInput :: Maybe FilePath -> IO String
 readInput (Just input) = readFile input
 readInput Nothing = getContents
 
--- Filters empty strings from a list.
-filterEmptyStrings :: [String] -> [String]
-filterEmptyStrings = filter (/= "")
-
 -- Loads grammar from file or stdin.
 -- Empty lines are ignored.
 loadGrammar :: Maybe FilePath -> IO(Result Grammar)
-loadGrammar input = readInput input <&> ( parseGrammar . filterEmptyStrings . lines )
+loadGrammar input = readInput input <&> ( parseGrammar . lines )
 
 -- Checks if the right side of a rule is a member in
 -- an iteration of a char set.

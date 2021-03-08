@@ -40,18 +40,18 @@ Input lines have the following format:
 1. (**N**) unique comma separated non-terminal capital characters
 2. (**T**) unique comma separated non-terminal lowercase characters
 3. (**S**) initial non-terminal belonging to N 
-4. (**P**) 0 to M unique new-line separated rules with the following format: <br />*A->X or A->#*, where A belongs to N, X belongs to *(N u T)+*, <br /> and # is a special empty string character (Epsilon).
+4. (**P**) 0 to M unique new-line separated rules with the following format: <br />*A->X or A->#*, where A belongs to N, X belongs to *(N u T)+*, <br /> and # is a special empty string character (Epsilon). Empty lines between rules are ignored.
    
 Valid grammar example:
 
     A,B,C,S
-
     a,b,c
     S
     S->#
 
     A->a
     A->aAaB
+    
     A->#
     B->b
     C->c
