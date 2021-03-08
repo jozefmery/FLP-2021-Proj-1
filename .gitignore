@@ -5,4 +5,4 @@ simplify-bkg
 dsimplify-bkg
 
 # temporary test files
-tests/*.temp
+*.temp
