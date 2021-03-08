@@ -22,42 +22,42 @@ for (( i=1; i<=49; i++ ))
 do
   ((total++))
   # -i
-  ./simplify-bkg -i tests/test0${i}.in > tests/test0${i}_i.temp
-  diff tests/test0${i}_i.temp tests/test0${i}_i.out  
+  ./simplify-bkg -i tests-foreign/test0${i}.in > tests-foreign/test0${i}_i.temp
+  diff tests-foreign/test0${i}_i.temp tests-foreign/test0${i}_i.out  
 
   if [ "$?" == "0" ]
     then
-      echo -e "[TEST 0$i] ./simplify-bkg -i tests/test0$i.in [${GREEN}OK${NC}]"
+      echo -e "[TEST 0$i] ./simplify-bkg -i tests-foreign/test0$i.in [${GREEN}OK${NC}]"
       ((ok++))
-      rm tests/test0${i}_i.temp
+      rm tests-foreign/test0${i}_i.temp
     else
-      echo -e "[TEST 0$i] ./simplify-bkg -i tests/test0$i.in [${RED}BAD${NC}]"
+      echo -e "[TEST 0$i] ./simplify-bkg -i tests-foreign/test0$i.in [${RED}BAD${NC}]"
   fi
 
   ((total++))
   # -1
-  ./simplify-bkg -1 tests/test0${i}.in > tests/test0${i}_1.temp
-  diff tests/test0${i}_1.temp tests/test0${i}_1.out
+  ./simplify-bkg -1 tests-foreign/test0${i}.in > tests-foreign/test0${i}_1.temp
+  diff tests-foreign/test0${i}_1.temp tests-foreign/test0${i}_1.out
   if [ "$?" == "0" ]
     then
-      echo -e "[TEST 0$i] ./simplify-bkg -1 tests/test0${i}.in [${GREEN}OK${NC}]"
+      echo -e "[TEST 0$i] ./simplify-bkg -1 tests-foreign/test0${i}.in [${GREEN}OK${NC}]"
       ((ok++))
-      rm tests/test0${i}_1.temp
+      rm tests-foreign/test0${i}_1.temp
     else
-      echo -e "[TEST 0$i] ./simplify-bkg -1 tests/test0${i}.in [${RED}BAD${NC}]"
+      echo -e "[TEST 0$i] ./simplify-bkg -1 tests-foreign/test0${i}.in [${RED}BAD${NC}]"
   fi
 
   ((total++))
    # -2
-  ./simplify-bkg -2 tests/test0${i}.in > tests/test0${i}_2.temp
-  diff tests/test0${i}_2.temp tests/test0${i}_2.out
+  ./simplify-bkg -2 tests-foreign/test0${i}.in > tests-foreign/test0${i}_2.temp
+  diff tests-foreign/test0${i}_2.temp tests-foreign/test0${i}_2.out
   if [ "$?" == "0" ]
     then
-      echo -e "[TEST 0$i] ./simplify-bkg -2 tests/test0${i}.in [${GREEN}OK${NC}]"
+      echo -e "[TEST 0$i] ./simplify-bkg -2 tests-foreign/test0${i}.in [${GREEN}OK${NC}]"
       ((ok++))
-      rm tests/test0${i}_2.temp
+      rm tests-foreign/test0${i}_2.temp
     else
-      echo -e "[TEST 0$i] ./simplify-bkg -2 tests/test0${i}.in [${RED}BAD${NC}]"
+      echo -e "[TEST 0$i] ./simplify-bkg -2 tests-foreign/test0${i}.in [${RED}BAD${NC}]"
   fi
 done
 
@@ -92,13 +92,13 @@ else
 fi
 
 ((total++))
-./simplify-bkg tests/test01.in 
+./simplify-bkg tests-foreign/test01.in 
 if [ "$?" == "1" ]
 then
 	((ok++))
-	echo -e "./simplify-bkg -i < tests/test01.in [${GREEN}OK${NC}]"
+	echo -e "./simplify-bkg -i < tests-foreign/test01.in [${GREEN}OK${NC}]"
 else
-	echo -e "./simplify-bkg -i < tests/test01.in [${RED}BAD${NC}]"
+	echo -e "./simplify-bkg -i < tests-foreign/test01.in [${RED}BAD${NC}]"
 fi
 
 ((total++))
