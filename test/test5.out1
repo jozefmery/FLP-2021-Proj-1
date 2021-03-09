@@ -1,0 +1,16 @@
+B,C,D,F,G,S,Z
+a,b,c,d,e,f,g
+S
+B->Cd
+B->bF
+C->c
+C->cC
+D->dCd
+F->BC
+G->g
+G->gG
+S->#
+S->B
+S->aSbgffZZZddBB
+Z->#
+Z->ZZSZZ

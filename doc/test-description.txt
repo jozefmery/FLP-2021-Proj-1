@@ -1,0 +1,26 @@
+File:     test-description.txt
+Author:   Jozef Méry - xmeryj00@vutbr.cz  
+Project:  FLP-2021-xmeryj00-simplify-bkg  
+Date:     8.3.2021
+
+The following test-set demonstrates the functionality of the application,
+but is not very comprehensive. The application was tested on a different test-set 
+(created by other students) for my own verification purposes, but I do not include
+it in the archive. My test cases may also help fill gaps in the assignment.
+
+Running the tests (make sure the application is compiled and up-to-date using make):
+
+  ./runTests.sh
+
+Test descriptions:
+
+1. Empty input error
+2. Missing alphabet error
+3. Missing initial symbol error
+4. Minimal valid grammar
+5. Complex example with empty lines between rules
+6. Grammar that is already simplified. (Each flag is identity)
+7. Duplicate non-terminal error
+8. Duplicate terminal error
+9. Starting symbol not in N error
+10. Duplicate rule error

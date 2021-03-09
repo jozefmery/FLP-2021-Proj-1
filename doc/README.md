@@ -17,11 +17,11 @@ any valid grammar.
 
 ## Building the application (run the following command):
 
-    make
+  make
 
 ## Running the application:
 
-    simplify-bkg [-h] {-i | -1 | -2} [<input_file>]
+  simplify-bkg [-h] {-i | -1 | -2} [<input_file>]
 
 | Option      | Description                                                   |
 |:-           |:-                                                             |  
@@ -44,17 +44,17 @@ Input lines have the following format:
    
 Valid grammar example:
 
-    A,B,C,S
-    a,b,c
-    S
-    S->#
+  A,B,C,S
+  a,b,c
+  S
+  S->#
 
-    A->a
-    A->aAaB
-    
-    A->#
-    B->b
-    C->c
-    C->#
-    S->AB
-    S->#
+  A->a
+  A->aAaB
+  
+  A->#
+  B->b
+  C->c
+  C->#
+  S->AB
+  S->#

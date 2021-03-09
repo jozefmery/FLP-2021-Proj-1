@@ -13,7 +13,7 @@ YEL="\033[0;33m"
 CLEAR="\033[0m"
 
 testPass=0
-testFiles=1
+testFiles=10
 ((testTotal=$testFiles * 3)) # 3 tests per file
 bin="./simplify-bkg"
 testDir="./test"
@@ -113,8 +113,7 @@ main() {
   print "-------------------------------------------------"
   print "TESTS FINISHED"
   print "-------------------------------------------------"
-  print "PASS/FAIL"
-  print "${testPass}/${testTotal}"
+  print "${testPass} PASSED OUT OF ${testTotal}"
 
   if [[ $testPass == $testTotal ]]
   then
